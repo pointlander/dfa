@@ -27,7 +27,7 @@ func Mul(m *Matrix, n *Matrix) *Matrix {
 		for j := 0; j < len(m.Data); j += m.Cols {
 			sum := 0.0
 			for k := 0; k < m.Cols; k++ {
-				sum += m.Data[j+k] * n.Data[(i+k)%len(n.Data)]
+				sum += m.Data[j+k] * n.Data[i+k]
 			}
 			o.Data = append(o.Data, sum)
 		}
