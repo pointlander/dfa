@@ -18,15 +18,17 @@ func Mul(m Matrix, n Matrix) Matrix {
 	if m.Cols != n.Cols {
 		panic(fmt.Errorf("%d != %d", m.Cols, n.Cols))
 	}
+	columns := m.Cols
 	o := Matrix{
 		Cols: m.Rows,
 		Rows: n.Rows,
 		Data: make([]float64, 0, m.Rows*n.Rows),
 	}
-	for i := 0; i < len(n.Data); i += n.Cols {
-		nn := n.Data[i : i+n.Cols]
-		for j := 0; j < len(m.Data); j += m.Cols {
-			mm, sum := m.Data[j:j+m.Cols], 0.0
+	lenn, lenm := len(n.Data), len(m.Data)
+	for i := 0; i < lenn; i += columns {
+		nn := n.Data[i : i+columns]
+		for j := 0; j < lenm; j += columns {
+			mm, sum := m.Data[j:j+columns], 0.0
 			for k, value := range mm {
 				sum += value * nn[k]
 			}
