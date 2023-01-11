@@ -14,7 +14,7 @@ type Matrix struct {
 }
 
 // Mul multiplies two matrices
-func Mul(m *Matrix, n *Matrix) *Matrix {
+func Mul(m Matrix, n Matrix) Matrix {
 	if m.Cols != n.Cols {
 		panic(fmt.Errorf("%d != %d", m.Cols, n.Cols))
 	}
@@ -23,16 +23,17 @@ func Mul(m *Matrix, n *Matrix) *Matrix {
 		Rows: n.Rows,
 		Data: make([]float64, 0, m.Rows*n.Rows),
 	}
-	for i := 0; i < len(n.Data); i += m.Cols {
+	for i := 0; i < len(n.Data); i += n.Cols {
+		nn := n.Data[i : i+n.Cols]
 		for j := 0; j < len(m.Data); j += m.Cols {
-			sum := 0.0
-			for k := 0; k < m.Cols; k++ {
-				sum += m.Data[j+k] * n.Data[i+k]
+			mm, sum := m.Data[j:j+m.Cols], 0.0
+			for k, value := range mm {
+				sum += value * nn[k]
 			}
 			o.Data = append(o.Data, sum)
 		}
 	}
-	return &o
+	return o
 }
 
 func main() {

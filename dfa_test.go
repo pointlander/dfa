@@ -17,7 +17,7 @@ func TestMul(t *testing.T) {
 		Rows: 1,
 		Data: []float64{1, 2},
 	}
-	c := Mul(&a, &b)
+	c := Mul(a, b)
 	if c.Data[0] != 5 || c.Data[1] != 11 {
 		t.Fatal("mul failed", c.Data)
 	}
@@ -26,7 +26,7 @@ func TestMul(t *testing.T) {
 		Rows: 2,
 		Data: []float64{1, 2, 3, 4},
 	}
-	f := Mul(&a, &e)
+	f := Mul(a, e)
 	if f.Data[0] != 5 || f.Data[1] != 11 || f.Data[2] != 11 || f.Data[3] != 25 {
 		t.Fatal("mul failed", f.Data)
 	}
