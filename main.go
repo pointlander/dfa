@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 )
 
@@ -113,11 +114,41 @@ func Neg(m Matrix) Matrix {
 	return o
 }
 
-// T tramsposes a matrix
-func T(m Matrix) Matrix {
+// Logis computes the logis of a matrix
+func Logis(m Matrix) Matrix {
 	o := Matrix{
 		Cols: m.Cols,
 		Rows: m.Rows,
+		Data: make([]float64, 0, m.Cols*m.Rows),
+	}
+	for _, value := range m.Data {
+		o.Data = append(o.Data, 1/(1+math.Exp(-value)))
+	}
+	return o
+}
+
+func logis(value float64) float64 {
+	return 1 / (1 + math.Exp(-value))
+}
+
+// DLogis computes the dlogis of a matrix
+func DLogis(m Matrix) Matrix {
+	o := Matrix{
+		Cols: m.Cols,
+		Rows: m.Rows,
+		Data: make([]float64, 0, m.Cols*m.Rows),
+	}
+	for _, value := range m.Data {
+		o.Data = append(o.Data, logis(value)*(1-logis(value)))
+	}
+	return o
+}
+
+// T tramsposes a matrix
+func T(m Matrix) Matrix {
+	o := Matrix{
+		Cols: m.Rows,
+		Rows: m.Cols,
 		Data: make([]float64, 0, m.Cols*m.Rows),
 	}
 	for i := 0; i < m.Cols; i++ {
@@ -157,20 +188,70 @@ func main() {
 		w3.Data = append(w3.Data, rnd.NormFloat64())
 	}
 
+	b1 := Matrix{
+		Cols: 1,
+		Rows: Hidden,
+	}
+	for i := 0; i < b1.Size(); i++ {
+		b1.Data = append(b1.Data, rnd.NormFloat64())
+	}
+	b2 := Matrix{
+		Cols: 1,
+		Rows: Hidden,
+	}
+	for i := 0; i < b2.Size(); i++ {
+		b2.Data = append(b2.Data, rnd.NormFloat64())
+	}
+
 	input := Matrix{
 		Cols: 3,
 		Rows: 1,
 		Data: make([]float64, 0, 3),
 	}
 	input.Data = append(input.Data, 0.0, 0.0, 1.0)
-	forward := func() Matrix {
-		l1 := Mul(w1, input)
-		l1.Data = append(l1.Data, 1.0)
-		l1.Cols += 1
-		l2 := Mul(w2, l1)
-		l2.Data = append(l2.Data, 1.0)
-		l2.Cols += 1
-		return Mul(w3, l2)
+	output := Matrix{
+		Cols: 1,
+		Rows: 1,
+		Data: make([]float64, 0, 1),
 	}
-	fmt.Println(forward())
+	output.Data = append(output.Data, 0.0)
+	forward := func() (y, a1, z1, a2, z2 Matrix) {
+		a1 = Mul(w1, input)
+		z1 = Logis(a1)
+		z1.Data = append(z1.Data, 1.0)
+		z1.Cols += 1
+		a2 = Mul(w2, z1)
+		z2 = Logis(a2)
+		z2.Data = append(z2.Data, 1.0)
+		z2.Cols += 1
+		y = Logis(Mul(w3, z2))
+		return
+	}
+
+	data := [][]float64{
+		{0.0, 0.0, 0.0},
+		{0.0, 1.0, 1.0},
+		{1.0, 0.0, 1.0},
+		{1.0, 1.0, 0.0},
+	}
+
+	for i := 0; i < 256; i++ {
+		example := data[rnd.Intn(len(data))]
+		input.Data[0] = example[0]
+		input.Data[1] = example[1]
+
+		y, a1, z1, a2, z2 := forward()
+		e := Sub(y, output)
+		fmt.Println(e.Data)
+		a1 = DLogis(a1)
+		d_a1 := H(Mul(b1, e), a1)
+		a2 = DLogis(a2)
+		d_a2 := H(Mul(b2, e), a2)
+		dw1 := Neg(Mul(T(d_a1), T(input)))
+		dw2 := Neg(Mul(T(d_a2), T(z1)))
+		dw3 := Neg(Mul(T(e), T(z2)))
+		w1 = Add(w1, dw1)
+		w2 = Add(w2, dw2)
+		w3 = Add(w3, dw3)
+	}
 }
