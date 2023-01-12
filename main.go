@@ -182,11 +182,28 @@ func T(m Matrix) Matrix {
 	return o
 }
 
+// AppendOne appends 1 to each row of a matrix
+func AppendOne(m Matrix) Matrix {
+	o := Matrix{
+		Cols: m.Cols + 1,
+		Rows: m.Rows,
+		Data: make([]float64, 0, (m.Cols+1)*m.Rows),
+	}
+	length := len(m.Data)
+	for i := 0; i < length; i += m.Cols {
+		o.Data = append(o.Data, m.Data[i:i+m.Cols]...)
+		o.Data = append(o.Data, 1.0)
+	}
+	return o
+}
+
 const (
 	// Hidden is the number of hidden neurons
 	Hidden = 10
 )
 
+// https://arxiv.org/abs/1609.01596
+// https://github.com/dbehrlich/directFeedbackAlignment
 func main() {
 	rnd := rand.New(rand.NewSource(0))
 	w1 := NewRandMatrix(rnd, 2+1, Hidden)
@@ -200,13 +217,9 @@ func main() {
 	output.Data = append(output.Data, 0.0)
 	forward := func() (y, a1, z1, a2, z2 Matrix) {
 		a1 = Mul(w1, input)
-		z1 = Logis(a1)
-		z1.Data = append(z1.Data, 1.0)
-		z1.Cols += 1
+		z1 = AppendOne(Logis(a1))
 		a2 = Mul(w2, z1)
-		z2 = Logis(a2)
-		z2.Data = append(z2.Data, 1.0)
-		z2.Cols += 1
+		z2 = AppendOne(Logis(a2))
 		y = Logis(Mul(w3, z2))
 		return
 	}
