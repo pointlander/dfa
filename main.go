@@ -203,6 +203,12 @@ func main() {
 		b2.Data = append(b2.Data, rnd.NormFloat64())
 	}
 
+	rate := Matrix{
+		Cols: 1,
+		Rows: 1,
+	}
+	rate.Data = append(rate.Data, .01)
+
 	input := Matrix{
 		Cols: 3,
 		Rows: 1,
@@ -235,23 +241,24 @@ func main() {
 		{1.0, 1.0, 0.0},
 	}
 
-	for i := 0; i < 256; i++ {
+	for i := 0; i < 8*1024; i++ {
 		example := data[rnd.Intn(len(data))]
 		input.Data[0] = example[0]
 		input.Data[1] = example[1]
+		output.Data[0] = example[2]
 
 		y, a1, z1, a2, z2 := forward()
 		e := Sub(y, output)
 		fmt.Println(e.Data)
 		a1 = DLogis(a1)
-		d_a1 := H(Mul(b1, e), a1)
+		d_a1 := H(T(Mul(b1, e)), a1)
 		a2 = DLogis(a2)
-		d_a2 := H(Mul(b2, e), a2)
-		dw1 := Neg(Mul(T(d_a1), T(input)))
-		dw2 := Neg(Mul(T(d_a2), T(z1)))
-		dw3 := Neg(Mul(T(e), T(z2)))
-		w1 = Add(w1, dw1)
-		w2 = Add(w2, dw2)
-		w3 = Add(w3, dw3)
+		d_a2 := H(T(Mul(b2, e)), a2)
+		dw1 := Neg(Mul(d_a1, T(input)))
+		dw2 := Neg(Mul(d_a2, T(z1)))
+		dw3 := Neg(Mul(e, T(z2)))
+		w1 = Add(w1, T(dw1))
+		w2 = Add(w2, T(dw2))
+		w3 = Add(w3, T(dw3))
 	}
 }
