@@ -17,6 +17,29 @@ type Matrix struct {
 	Data []float64
 }
 
+// NewMatrix creates a new matrix
+func NewMatrix(cols, rows int) Matrix {
+	return Matrix{
+		Cols: cols,
+		Rows: rows,
+		Data: make([]float64, 0, cols*rows),
+	}
+}
+
+// NewRandMatrix creates a new random matrix
+func NewRandMatrix(rnd *rand.Rand, cols, rows int) Matrix {
+	m := Matrix{
+		Cols: cols,
+		Rows: rows,
+		Data: make([]float64, 0, cols*rows),
+	}
+	factor := math.Sqrt(2.0 / float64(cols))
+	for i := 0; i < cols*rows; i++ {
+		m.Data = append(m.Data, rnd.NormFloat64()*factor)
+	}
+	return m
+}
+
 // Size is the size of the matrix
 func (m Matrix) Size() int {
 	return m.Cols * m.Rows
@@ -166,60 +189,14 @@ const (
 
 func main() {
 	rnd := rand.New(rand.NewSource(0))
-	w1 := Matrix{
-		Cols: 2 + 1,
-		Rows: Hidden,
-	}
-	for i := 0; i < w1.Size(); i++ {
-		w1.Data = append(w1.Data, rnd.NormFloat64())
-	}
-	w2 := Matrix{
-		Cols: Hidden + 1,
-		Rows: Hidden,
-	}
-	for i := 0; i < w2.Size(); i++ {
-		w2.Data = append(w2.Data, rnd.NormFloat64())
-	}
-	w3 := Matrix{
-		Cols: Hidden + 1,
-		Rows: 1,
-	}
-	for i := 0; i < w3.Size(); i++ {
-		w3.Data = append(w3.Data, rnd.NormFloat64())
-	}
-
-	b1 := Matrix{
-		Cols: 1,
-		Rows: Hidden,
-	}
-	for i := 0; i < b1.Size(); i++ {
-		b1.Data = append(b1.Data, rnd.NormFloat64())
-	}
-	b2 := Matrix{
-		Cols: 1,
-		Rows: Hidden,
-	}
-	for i := 0; i < b2.Size(); i++ {
-		b2.Data = append(b2.Data, rnd.NormFloat64())
-	}
-
-	rate := Matrix{
-		Cols: 1,
-		Rows: 1,
-	}
-	rate.Data = append(rate.Data, .01)
-
-	input := Matrix{
-		Cols: 3,
-		Rows: 1,
-		Data: make([]float64, 0, 3),
-	}
+	w1 := NewRandMatrix(rnd, 2+1, Hidden)
+	w2 := NewRandMatrix(rnd, Hidden+1, Hidden)
+	w3 := NewRandMatrix(rnd, Hidden+1, 1)
+	b1 := NewRandMatrix(rnd, 1, Hidden)
+	b2 := NewRandMatrix(rnd, 1, Hidden)
+	input := NewMatrix(3, 1)
 	input.Data = append(input.Data, 0.0, 0.0, 1.0)
-	output := Matrix{
-		Cols: 1,
-		Rows: 1,
-		Data: make([]float64, 0, 1),
-	}
+	output := NewMatrix(1, 1)
 	output.Data = append(output.Data, 0.0)
 	forward := func() (y, a1, z1, a2, z2 Matrix) {
 		a1 = Mul(w1, input)
@@ -241,7 +218,7 @@ func main() {
 		{1.0, 1.0, 0.0},
 	}
 
-	for i := 0; i < 8*1024; i++ {
+	for i := 0; i < 1024; i++ {
 		example := data[rnd.Intn(len(data))]
 		input.Data[0] = example[0]
 		input.Data[1] = example[1]
@@ -254,11 +231,11 @@ func main() {
 		d_a1 := H(T(Mul(b1, e)), a1)
 		a2 = DLogis(a2)
 		d_a2 := H(T(Mul(b2, e)), a2)
-		dw1 := Neg(Mul(d_a1, T(input)))
-		dw2 := Neg(Mul(d_a2, T(z1)))
-		dw3 := Neg(Mul(e, T(z2)))
-		w1 = Add(w1, T(dw1))
-		w2 = Add(w2, T(dw2))
-		w3 = Add(w3, T(dw3))
+		dw1 := Mul(d_a1, T(input))
+		dw2 := Mul(d_a2, T(z1))
+		dw3 := Mul(e, T(z2))
+		w1 = Sub(w1, T(dw1))
+		w2 = Sub(w2, T(dw2))
+		w3 = Sub(w3, T(dw3))
 	}
 }
