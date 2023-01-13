@@ -12,22 +12,30 @@ import (
 
 // Matrix is a matrix
 type Matrix struct {
-	Cols int
-	Rows int
-	Data []float64
+	Cols   int
+	Rows   int
+	Data   []float64
+	States [][]float64
 }
 
 // NewMatrix creates a new matrix
-func NewMatrix(cols, rows int) Matrix {
-	return Matrix{
+func NewMatrix(states, cols, rows int) Matrix {
+	m := Matrix{
 		Cols: cols,
 		Rows: rows,
 		Data: make([]float64, 0, cols*rows),
 	}
+	if states > 0 {
+		m.States = make([][]float64, states)
+		for i := range m.States {
+			m.States[i] = make([]float64, cols*rows)
+		}
+	}
+	return m
 }
 
 // NewRandMatrix creates a new random matrix
-func NewRandMatrix(rnd *rand.Rand, cols, rows int) Matrix {
+func NewRandMatrix(rnd *rand.Rand, states, cols, rows int) Matrix {
 	m := Matrix{
 		Cols: cols,
 		Rows: rows,
@@ -36,6 +44,12 @@ func NewRandMatrix(rnd *rand.Rand, cols, rows int) Matrix {
 	factor := math.Sqrt(2.0 / float64(cols))
 	for i := 0; i < cols*rows; i++ {
 		m.Data = append(m.Data, rnd.NormFloat64()*factor)
+	}
+	if states > 0 {
+		m.States = make([][]float64, states)
+		for i := range m.States {
+			m.States[i] = make([]float64, cols*rows)
+		}
 	}
 	return m
 }
@@ -200,20 +214,35 @@ func AppendOne(m Matrix) Matrix {
 const (
 	// Hidden is the number of hidden neurons
 	Hidden = 10
+	// B1 exponential decay of the rate for the first moment estimates
+	B1 = 0.9
+	// B2 exponential decay rate for the second-moment estimates
+	B2 = 0.999
+	// Eta is the learning rate
+	Eta = .2
+)
+
+const (
+	// StateM is the state for the mean
+	StateM = iota
+	// StateV is the state for the variance
+	StateV
+	// StateTotal is the total number of states
+	StateTotal
 )
 
 // https://arxiv.org/abs/1609.01596
 // https://github.com/dbehrlich/directFeedbackAlignment
 func main() {
 	rnd := rand.New(rand.NewSource(0))
-	w1 := NewRandMatrix(rnd, 2+1, Hidden)
-	w2 := NewRandMatrix(rnd, Hidden+1, Hidden)
-	w3 := NewRandMatrix(rnd, Hidden+1, 1)
-	b1 := NewRandMatrix(rnd, 1, Hidden)
-	b2 := NewRandMatrix(rnd, 1, Hidden)
-	input := NewMatrix(2, 1)
+	w1 := NewRandMatrix(rnd, StateTotal, 2+1, Hidden)
+	w2 := NewRandMatrix(rnd, StateTotal, Hidden+1, Hidden)
+	w3 := NewRandMatrix(rnd, StateTotal, Hidden+1, 1)
+	b1 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
+	b2 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
+	input := NewMatrix(0, 2, 1)
 	input.Data = append(input.Data, 0.0, 0.0)
-	output := NewMatrix(1, 1)
+	output := NewMatrix(0, 1, 1)
 	output.Data = append(output.Data, 0.0)
 	forward := func() (y, a1, z1, a2, z2 Matrix) {
 		a1 = Mul(w1, AppendOne(input))
@@ -231,7 +260,7 @@ func main() {
 		{1.0, 1.0, 0.0},
 	}
 
-	for i := 0; i < 1024; i++ {
+	for i := 1; i < 1024; i++ {
 		example := data[rnd.Intn(len(data))]
 		input.Data[0] = example[0]
 		input.Data[1] = example[1]
@@ -244,11 +273,36 @@ func main() {
 		d_a1 := H(T(Mul(b1, e)), a1)
 		a2 = DLogis(a2)
 		d_a2 := H(T(Mul(b2, e)), a2)
-		dw1 := Mul(d_a1, T(AppendOne(input)))
-		dw2 := Mul(d_a2, T(z1))
-		dw3 := Mul(e, T(z2))
-		w1 = Sub(w1, T(dw1))
-		w2 = Sub(w2, T(dw2))
-		w3 = Sub(w3, T(dw3))
+		dw1 := T(Mul(d_a1, T(AppendOne(input))))
+		dw2 := T(Mul(d_a2, T(z1)))
+		dw3 := T(Mul(e, T(z2)))
+		bb1, bb2 := math.Pow(B1, float64(i)), math.Pow(B2, float64(i))
+		for j, value := range dw1.Data {
+			m := B1*w1.States[StateM][j] + (1-B1)*value
+			v := B2*w1.States[StateV][j] + (1-B2)*value*value
+			w1.States[StateM][j] = m
+			w1.States[StateV][j] = v
+			mhat := m / (1 - bb1)
+			vhat := v / (1 - bb2)
+			w1.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+		}
+		for j, value := range dw2.Data {
+			m := B1*w2.States[StateM][j] + (1-B1)*value
+			v := B2*w2.States[StateV][j] + (1-B2)*value*value
+			w2.States[StateM][j] = m
+			w2.States[StateV][j] = v
+			mhat := m / (1 - bb1)
+			vhat := v / (1 - bb2)
+			w2.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+		}
+		for j, value := range dw3.Data {
+			m := B1*w3.States[StateM][j] + (1-B1)*value
+			v := B2*w3.States[StateV][j] + (1-B2)*value*value
+			w3.States[StateM][j] = m
+			w3.States[StateV][j] = v
+			mhat := m / (1 - bb1)
+			vhat := v / (1 - bb2)
+			w3.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+		}
 	}
 }
