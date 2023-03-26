@@ -145,8 +145,15 @@ func TestNeuron(t *testing.T) {
 		e := Sub(y, output)
 		t.Log(e.Data)
 		derivative := T(Mul(e, T(inputs)))
-		for i, d := range derivative.Data {
-			weights.Data[i] -= d
+		bb1, bb2 := math.Pow(B1, float64(i)), math.Pow(B2, float64(i))
+		for j, value := range derivative.Data {
+			m := B1*weights.States[StateM][j] + (1-B1)*value
+			v := B2*weights.States[StateV][j] + (1-B2)*value*value
+			weights.States[StateM][j] = m
+			weights.States[StateV][j] = v
+			mhat := m / (1 - bb1)
+			vhat := v / (1 - bb2)
+			weights.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
 		}
 	}
 	t.Log(weights.Data)
