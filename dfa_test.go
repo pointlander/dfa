@@ -37,7 +37,7 @@ func TestMul(t *testing.T) {
 }
 
 func TestDFA(t *testing.T) {
-	rnd := rand.New(rand.NewSource(0))
+	rnd := rand.New(rand.NewSource(2))
 	w1 := NewRandMatrix(rnd, StateTotal, 2+1, Hidden)
 	w2 := NewRandMatrix(rnd, StateTotal, Hidden+1, Hidden)
 	w3 := NewRandMatrix(rnd, StateTotal, Hidden+1, 1)
@@ -79,6 +79,7 @@ func TestDFA(t *testing.T) {
 		dw1 := T(Mul(d_a1, T(AppendOne(input))))
 		dw2 := T(Mul(d_a2, T(z1)))
 		dw3 := T(Mul(e, T(z2)))
+		t.Log(z2.Cols, z2.Rows)
 		bb1, bb2 := math.Pow(B1, float64(i)), math.Pow(B2, float64(i))
 		for j, value := range dw1.Data {
 			m := B1*w1.States[StateM][j] + (1-B1)*value
@@ -123,4 +124,30 @@ func TestDFA(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestNeuron(t *testing.T) {
+	rnd := rand.New(rand.NewSource(1))
+	inputs := NewMatrix(0, 256, 1)
+	inputs.Data = append(inputs.Data, 1)
+	for i := 1; i < 256; i++ {
+		inputs.Data = append(inputs.Data, 0)
+	}
+	output := NewMatrix(0, 1, 1)
+	output.Data = append(output.Data, 1)
+	weights := NewRandMatrix(rnd, StateTotal, 256, 1)
+	forward := func() (y Matrix) {
+		y = Logis(Mul(weights, inputs))
+		return
+	}
+	for i := 1; i < 1024; i++ {
+		y := forward()
+		e := Sub(y, output)
+		t.Log(e.Data)
+		derivative := T(Mul(e, T(inputs)))
+		for i, d := range derivative.Data {
+			weights.Data[i] -= d
+		}
+	}
+	t.Log(weights.Data)
 }
