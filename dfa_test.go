@@ -79,7 +79,6 @@ func TestDFA(t *testing.T) {
 		dw1 := T(Mul(d_a1, T(AppendOne(input))))
 		dw2 := T(Mul(d_a2, T(z1)))
 		dw3 := T(Mul(e, T(z2)))
-		t.Log(z2.Cols, z2.Rows)
 		bb1, bb2 := math.Pow(B1, float64(i)), math.Pow(B2, float64(i))
 		for j, value := range dw1.Data {
 			m := B1*w1.States[StateM][j] + (1-B1)*value
