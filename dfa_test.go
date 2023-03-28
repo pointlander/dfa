@@ -169,17 +169,17 @@ func TestComplex(t *testing.T) {
 	for i := 0; i < 256; i++ {
 		weights = append(weights, complex(float32(rnd.NormFloat64()*factor), float32(rnd.NormFloat64()*factor)))
 	}
-	inputs := make([]complex64, 256)
-	inputs[0] = complex64(cmplx.Exp(math.Pi * (1i / 4)))
+	inputs := make([]complex128, 256)
+	inputs[0] = cmplx.Exp(math.Pi * (1i / 4))
 	for i := 0; i < 1024; i++ {
-		y := complex64(0)
+		y := complex128(0)
 		for j, value := range inputs {
-			y += value * weights[j]
+			y += value * complex128(weights[j])
 		}
 		y = (y - 1) * (y - 1)
-		t.Log(cmplx.Abs(complex128(y)), cmplx.Phase(complex128(y)), y)
+		t.Log(cmplx.Abs(y), cmplx.Phase(y), y)
 		for j, value := range inputs {
-			weights[j] -= Eta * value * y
+			weights[j] -= complex64(Eta * value * y)
 		}
 	}
 	type Weight struct {
