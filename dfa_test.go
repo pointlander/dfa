@@ -182,10 +182,21 @@ func TestComplex(t *testing.T) {
 			weights[j] -= Eta * value * y
 		}
 	}
-	sort.Slice(weights, func(i, j int) bool {
-		return cmplx.Abs(complex128(weights[i])) > cmplx.Abs(complex128(weights[j]))
+	type Weight struct {
+		Index int
+		Value complex64
+	}
+	w := make([]Weight, 0, 256)
+	for i, value := range weights {
+		w = append(w, Weight{
+			Index: i,
+			Value: value,
+		})
+	}
+	sort.Slice(w, func(i, j int) bool {
+		return cmplx.Abs(complex128(w[i].Value)) > cmplx.Abs(complex128(w[j].Value))
 	})
-	for _, value := range weights {
-		fmt.Println(cmplx.Abs(complex128(value)), value)
+	for _, value := range w {
+		fmt.Println(value.Index, cmplx.Abs(complex128(value.Value)), cmplx.Phase(complex128(value.Value)), value.Value)
 	}
 }
