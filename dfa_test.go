@@ -5,9 +5,11 @@
 package dfa
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 	"math/rand"
+	"sort"
 	"testing"
 )
 
@@ -179,5 +181,11 @@ func TestComplex(t *testing.T) {
 		for j, value := range inputs {
 			weights[j] -= Eta * value * y
 		}
+	}
+	sort.Slice(weights, func(i, j int) bool {
+		return cmplx.Abs(complex128(weights[i])) > cmplx.Abs(complex128(weights[j]))
+	})
+	for _, value := range weights {
+		fmt.Println(cmplx.Abs(complex128(value)), value)
 	}
 }
