@@ -176,8 +176,8 @@ func TestComplex(t *testing.T) {
 		for j, value := range inputs {
 			y += value * weights[j]
 		}
-		y = 1/(1+complex64(cmplx.Exp(-complex128(y)))) - 1
-		t.Log(y)
+		y = (y - 1) * (y - 1)
+		t.Log(cmplx.Abs(complex128(y)), cmplx.Phase(complex128(y)), y)
 		for j, value := range inputs {
 			weights[j] -= Eta * value * y
 		}
