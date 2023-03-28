@@ -6,6 +6,7 @@ package dfa
 
 import (
 	"math"
+	"math/cmplx"
 	"math/rand"
 	"testing"
 )
@@ -156,4 +157,27 @@ func TestNeuron(t *testing.T) {
 		}
 	}
 	t.Log(weights.Data)
+}
+
+func TestComplex(t *testing.T) {
+	const Eta = .1
+	rnd := rand.New(rand.NewSource(1))
+	weights := make([]complex64, 0, 256)
+	factor := math.Sqrt(2.0 / float64(256))
+	for i := 0; i < 256; i++ {
+		weights = append(weights, complex(float32(rnd.NormFloat64()*factor), float32(rnd.NormFloat64()*factor)))
+	}
+	inputs := make([]complex64, 256)
+	inputs[0] = complex64(cmplx.Exp(math.Pi * (1i / 4)))
+	for i := 0; i < 1024; i++ {
+		y := complex64(0)
+		for j, value := range inputs {
+			y += value * weights[j]
+		}
+		y = 1/(1+complex64(cmplx.Exp(-complex128(y)))) - 1
+		t.Log(y)
+		for j, value := range inputs {
+			weights[j] -= Eta * value * y
+		}
+	}
 }
