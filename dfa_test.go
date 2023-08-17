@@ -42,8 +42,8 @@ func TestMul(t *testing.T) {
 func TestDFA(t *testing.T) {
 	rnd := rand.New(rand.NewSource(2))
 	w1 := NewRandMatrix(rnd, StateTotal, 2+1, Hidden)
-	w2 := NewRandMatrix(rnd, StateTotal, Hidden+1, Hidden)
-	w3 := NewRandMatrix(rnd, StateTotal, Hidden+1, 1)
+	w2 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, Hidden)
+	w3 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, 1)
 	b1 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
 	b2 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
 	input := NewMatrix(0, 2, 1)
@@ -52,18 +52,18 @@ func TestDFA(t *testing.T) {
 	output.Data = append(output.Data, 0.0)
 	forward := func() (y, a1, z1, a2, z2 Matrix) {
 		a1 = Mul(w1, AppendOne(input))
-		z1 = AppendOne(Logis(a1))
+		z1 = AppendOne(Everett(a1))
 		a2 = Mul(w2, z1)
-		z2 = AppendOne(Logis(a2))
-		y = Logis(Mul(w3, z2))
+		z2 = AppendOne(Everett(a2))
+		y = Mul(w3, z2)
 		return
 	}
 
 	data := [][]float64{
-		{0.0, 0.0, 0.0},
-		{0.0, 1.0, 1.0},
-		{1.0, 0.0, 1.0},
-		{1.0, 1.0, 0.0},
+		{-1.0, -1.0, -1.0},
+		{-1.0, 1.0, 1.0},
+		{1.0, -1.0, 1.0},
+		{1.0, 1.0, -1.0},
 	}
 
 	for i := 1; i < 1024; i++ {
@@ -75,9 +75,9 @@ func TestDFA(t *testing.T) {
 		y, a1, z1, a2, z2 := forward()
 		e := Sub(y, output)
 		t.Log(e.Data)
-		a1 = DLogis(a1)
+		a1 = DEverett(a1)
 		d_a1 := H(T(Mul(b1, e)), a1)
-		a2 = DLogis(a2)
+		a2 = DEverett(a2)
 		d_a2 := H(T(Mul(b2, e)), a2)
 		dw1 := T(Mul(d_a1, T(AppendOne(input))))
 		dw2 := T(Mul(d_a2, T(z1)))
@@ -117,11 +117,11 @@ func TestDFA(t *testing.T) {
 		input.Data[1] = example[1]
 		y, _, _, _, _ := forward()
 		if example[2] > 0.5 {
-			if y.Data[0] < 0.5 {
+			if y.Data[0] < 0 {
 				t.Fatal("failed", example, y.Data)
 			}
 		} else {
-			if y.Data[0] > 0.5 {
+			if y.Data[0] > 0 {
 				t.Fatal("failed", example, y.Data)
 			}
 		}

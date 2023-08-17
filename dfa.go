@@ -181,6 +181,39 @@ func DLogis(m Matrix) Matrix {
 	return o
 }
 
+// Everett computes the split reality activation function
+func Everett(m Matrix) Matrix {
+	o := Matrix{
+		Cols: 2 * m.Cols,
+		Rows: m.Rows,
+		Data: make([]float64, 0, 2*m.Cols*m.Rows),
+	}
+	for _, value := range m.Data {
+		min, max := value, value
+		if min > 0 {
+			min = 0
+		}
+		if max < 0 {
+			max = 0
+		}
+		o.Data = append(o.Data, min, max)
+	}
+	return o
+}
+
+// DEverett computes the derivate of the split reality activation function
+func DEverett(m Matrix) Matrix {
+	o := Matrix{
+		Cols: 2 * m.Cols,
+		Rows: m.Rows,
+		Data: make([]float64, 0, 2*m.Cols*m.Rows),
+	}
+	for range m.Data {
+		o.Data = append(o.Data, 1)
+	}
+	return o
+}
+
 // T tramsposes a matrix
 func T(m Matrix) Matrix {
 	o := Matrix{
@@ -219,7 +252,7 @@ const (
 	// B2 exponential decay rate for the second-moment estimates
 	B2 = 0.999
 	// Eta is the learning rate
-	Eta = .2
+	Eta = .01
 )
 
 const (
