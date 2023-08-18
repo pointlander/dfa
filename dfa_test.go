@@ -40,13 +40,14 @@ func TestMul(t *testing.T) {
 }
 
 func TestDFA(t *testing.T) {
-	const layers = 10
+	const layers = 100
 	rnd := rand.New(rand.NewSource(2))
 	w1 := NewRandMatrix(rnd, StateTotal, 2+1, Hidden)
-	w2 := make([]Matrix, layers)
+	/*w2 := make([]Matrix, layers)
 	for i := range w2 {
 		w2[i] = NewRandMatrix(rnd, StateTotal, 2*Hidden+1, Hidden)
-	}
+	}*/
+	w2 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, Hidden)
 	w3 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, 1)
 	b1 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
 	b2 := make([]Matrix, layers)
@@ -61,8 +62,13 @@ func TestDFA(t *testing.T) {
 		a1 = Mul(w1, AppendOne(input))
 		z1 = AppendOne(Everett(a1))
 		z := z1
-		for i := range w2 {
+		/*for i := range w2 {
 			a2 = append(a2, Mul(w2[i], z))
+			z2 = append(z2, AppendOne(Everett(a2[i])))
+			z = z2[i]
+		}*/
+		for i := 0; i < layers; i++ {
+			a2 = append(a2, Mul(w2, z))
 			z2 = append(z2, AppendOne(Everett(a2[i])))
 			z = z2[i]
 		}
@@ -77,7 +83,7 @@ func TestDFA(t *testing.T) {
 		{1.0, 1.0, -1.0},
 	}
 
-	for i := 1; i < 1024; i++ {
+	for i := 1; i < 16*1024; i++ {
 		example := data[rnd.Intn(len(data))]
 		input.Data[0] = example[0]
 		input.Data[1] = example[1]
@@ -85,7 +91,7 @@ func TestDFA(t *testing.T) {
 
 		y, a1, z1, a2, z2 := forward()
 		e := Sub(y, output)
-		t.Log(e.Data)
+		t.Log(i, e.Data)
 		a1 = DEverett(a1)
 		d_a1 := H(T(Mul(b1, e)), a1)
 		d_a2 := make([]Matrix, len(a2))
@@ -111,15 +117,15 @@ func TestDFA(t *testing.T) {
 			vhat := v / (1 - bb2)
 			w1.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
 		}
-		for i, dw := range dw2 {
+		for _, dw := range dw2 {
 			for j, value := range dw.Data {
-				m := B1*w2[i].States[StateM][j] + (1-B1)*value
-				v := B2*w2[i].States[StateV][j] + (1-B2)*value*value
-				w2[i].States[StateM][j] = m
-				w2[i].States[StateV][j] = v
+				m := B1*w2.States[StateM][j] + (1-B1)*value
+				v := B2*w2.States[StateV][j] + (1-B2)*value*value
+				w2.States[StateM][j] = m
+				w2.States[StateV][j] = v
 				mhat := m / (1 - bb1)
 				vhat := v / (1 - bb2)
-				w2[i].Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+				w2.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
 			}
 		}
 		for j, value := range dw3.Data {
