@@ -204,9 +204,9 @@ func Everett(m Matrix) Matrix {
 // DEverett computes the derivate of the split reality activation function
 func DEverett(m Matrix) Matrix {
 	o := Matrix{
-		Cols: 2 * m.Cols,
+		Cols: m.Cols,
 		Rows: m.Rows,
-		Data: make([]float64, 0, 2*m.Cols*m.Rows),
+		Data: make([]float64, 0, m.Cols*m.Rows),
 	}
 	for range m.Data {
 		o.Data = append(o.Data, 1)
