@@ -246,13 +246,13 @@ func AppendOne(m Matrix) Matrix {
 
 const (
 	// Hidden is the number of hidden neurons
-	Hidden = 10
+	Hidden = 100
 	// B1 exponential decay of the rate for the first moment estimates
 	B1 = 0.9
 	// B2 exponential decay rate for the second-moment estimates
 	B2 = 0.999
 	// Eta is the learning rate
-	Eta = .01
+	Eta = .0001
 )
 
 const (

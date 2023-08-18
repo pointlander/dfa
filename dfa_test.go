@@ -40,22 +40,33 @@ func TestMul(t *testing.T) {
 }
 
 func TestDFA(t *testing.T) {
+	const layers = 10
 	rnd := rand.New(rand.NewSource(2))
 	w1 := NewRandMatrix(rnd, StateTotal, 2+1, Hidden)
-	w2 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, Hidden)
+	w2 := make([]Matrix, layers)
+	for i := range w2 {
+		w2[i] = NewRandMatrix(rnd, StateTotal, 2*Hidden+1, Hidden)
+	}
 	w3 := NewRandMatrix(rnd, StateTotal, 2*Hidden+1, 1)
 	b1 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
-	b2 := NewRandMatrix(rnd, StateTotal, 1, Hidden)
+	b2 := make([]Matrix, layers)
+	for i := range b2 {
+		b2[i] = NewRandMatrix(rnd, StateTotal, 1, Hidden)
+	}
 	input := NewMatrix(0, 2, 1)
 	input.Data = append(input.Data, 0.0, 0.0)
 	output := NewMatrix(0, 1, 1)
 	output.Data = append(output.Data, 0.0)
-	forward := func() (y, a1, z1, a2, z2 Matrix) {
+	forward := func() (y, a1, z1 Matrix, a2, z2 []Matrix) {
 		a1 = Mul(w1, AppendOne(input))
 		z1 = AppendOne(Everett(a1))
-		a2 = Mul(w2, z1)
-		z2 = AppendOne(Everett(a2))
-		y = Mul(w3, z2)
+		z := z1
+		for i := range w2 {
+			a2 = append(a2, Mul(w2[i], z))
+			z2 = append(z2, AppendOne(Everett(a2[i])))
+			z = z2[i]
+		}
+		y = Mul(w3, z)
 		return
 	}
 
@@ -77,11 +88,19 @@ func TestDFA(t *testing.T) {
 		t.Log(e.Data)
 		a1 = DEverett(a1)
 		d_a1 := H(T(Mul(b1, e)), a1)
-		a2 = DEverett(a2)
-		d_a2 := H(T(Mul(b2, e)), a2)
+		d_a2 := make([]Matrix, len(a2))
+		for i := range a2 {
+			a2[i] = DEverett(a2[i])
+			d_a2[i] = H(T(Mul(b2[i], e)), a2[i])
+		}
 		dw1 := T(Mul(d_a1, T(AppendOne(input))))
-		dw2 := T(Mul(d_a2, T(z1)))
-		dw3 := T(Mul(e, T(z2)))
+		dw2 := make([]Matrix, len(a2))
+		z := z1
+		for i := range a2 {
+			dw2[i] = T(Mul(d_a2[i], T(z)))
+			z = z2[i]
+		}
+		dw3 := T(Mul(e, T(z)))
 		bb1, bb2 := math.Pow(B1, float64(i)), math.Pow(B2, float64(i))
 		for j, value := range dw1.Data {
 			m := B1*w1.States[StateM][j] + (1-B1)*value
@@ -92,14 +111,16 @@ func TestDFA(t *testing.T) {
 			vhat := v / (1 - bb2)
 			w1.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
 		}
-		for j, value := range dw2.Data {
-			m := B1*w2.States[StateM][j] + (1-B1)*value
-			v := B2*w2.States[StateV][j] + (1-B2)*value*value
-			w2.States[StateM][j] = m
-			w2.States[StateV][j] = v
-			mhat := m / (1 - bb1)
-			vhat := v / (1 - bb2)
-			w2.Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+		for i, dw := range dw2 {
+			for j, value := range dw.Data {
+				m := B1*w2[i].States[StateM][j] + (1-B1)*value
+				v := B2*w2[i].States[StateV][j] + (1-B2)*value*value
+				w2[i].States[StateM][j] = m
+				w2[i].States[StateV][j] = v
+				mhat := m / (1 - bb1)
+				vhat := v / (1 - bb2)
+				w2[i].Data[j] -= Eta * mhat / (math.Sqrt(float64(vhat)) + 1e-8)
+			}
 		}
 		for j, value := range dw3.Data {
 			m := B1*w3.States[StateM][j] + (1-B1)*value
